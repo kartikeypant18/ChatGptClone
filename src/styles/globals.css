@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+:root {
+  --background: #343541;
+  /* ChatGPT main bg */
+  --foreground: #ECECF1;
+  /* ChatGPT text */
+  --sidebar: #202123;
+  /* ChatGPT sidebar */
+  --card: #444654;
+  /* Assistant bubble */
+  --user: #343541;
+  /* User bubble */
+  --primary: #19C37D;
+  /* ChatGPT green */
+  --border: #343541;
+  --muted: #8E8EA0;
+  --hover: #2A2B32;
+  --radius: 0.75rem;
+  --font-sans: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+}
+
+#__next {
+  height: 100vh;
+}
+
+body {
+  height: 100%;
+}
+
+/* Improve keyboard focus visibility */
+:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.15);
+  outline-offset: 2px;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Scrollbar look like ChatGPT */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #565869;
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.react-scroll-to-bottom--css-uzqrz-79elbk {
+  position: relative;
+}
+
+.react-scroll-to-bottom--css-ikyem-1n7m0yu {
+  height: 100%;
+  overflow-y: auto;
+  width: 100%;
+}
+
+textarea:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+
+
+
+
+
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .bg-chatgpt-bg {
+    background-color: var(--background);
+  }
+
+  .bg-chatgpt-card {
+    background-color: var(--card);
+  }
+
+  .border-chatgpt-border {
+    border-color: var(--border);
+  }
+
+  .text-chatgpt-muted {
+    color: var(--muted);
+  }
+
+  .bg-chatgpt-hover {
+    background-color: var(--hover);
+  }
+
+  .text-chatgpt {
+    color: var(--foreground);
+  }
+
+  .bg-chatgpt-green {
+    background-color: var(--primary);
+  }
+
+  .container-chat {
+    @apply mx-auto lg:max-w-2xl xl:max-w-3xl;
+  }
+}
