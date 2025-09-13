@@ -36,7 +36,11 @@ export default function useChatLogic(props: any) {
     setMessage("");
     setAttachments([]);
     setIsLoading(true);
-    setConversation(prev => [...prev, { role: 'assistant', content: '...', isLoading: true }]);
+    setConversation(prev => [
+      ...prev,
+      { role: "user", content: userMessage, temp: true },
+      { role: 'assistant', content: '...', isLoading: true }
+    ]);
     try {
       let threadId = activeThreadId;
       if (!threadId) {
@@ -49,12 +53,17 @@ export default function useChatLogic(props: any) {
       const userTurnRes = await fetch(`/api/chat-history`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: userMessage, role: "user", threadId, model: selectedModel?.id }) });
       if (!userTurnRes.ok) throw new Error("Failed to save your message.");
       const userTurn = await userTurnRes.json();
-      setConversation(prev => [...prev, { role: "user", content: userMessage, turnId: userTurn._id, versions: userTurn.versions, currentVersion: userTurn.currentVersion }]);
+      // Replace the temp user message with the real one (with turnId, etc.)
+      setConversation(prev => prev.map(m => m.temp ? { role: "user", content: userMessage, turnId: userTurn._id, versions: userTurn.versions, currentVersion: userTurn.currentVersion } : m));
       setShowEmptyChat(false);
       const aiRes = await fetch(`/api/openai`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [...conversation, { content: userMessage, role: "user" }], model: selectedModel, attachments }) });
       if (!aiRes.ok) throw new Error("Failed to get AI response");
       const aiData = await aiRes.json();
-      setConversation(prev => [...prev, { role: "assistant", content: aiData.message, turnId: userTurn._id }]);
+      // Remove the loading message before adding the real response
+      setConversation(prev => {
+        const filtered = prev.filter(m => !m.isLoading);
+        return [...filtered, { role: "assistant", content: aiData.message, turnId: userTurn._id }];
+      });
       const saveRes = await fetch(`/api/chat-history`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: aiData.message, role: "assistant", threadId, model: selectedModel?.id, turnId: userTurn._id }) });
       if (saveRes.ok) window.dispatchEvent(new Event('threads:refresh'));
     } catch (error: any) {
