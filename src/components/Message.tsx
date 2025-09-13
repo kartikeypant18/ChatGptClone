@@ -12,7 +12,7 @@ const Message = (props: any) => {
   const { role, content: text, versions, currentVersion } = message;
 
   const isUser = role === "user";
-  const displayText = typeof text === 'string' ? text.replace(/^\s*(assistant|system)\s*:\s*/i, '') : text;
+  const displayText = text || "";  // Simplified content handling
 
   return (
     <div className={`w-full flex justify-center ${isUser ? "bg-[#343541]" : "bg-[#444654]"}`}>
@@ -53,10 +53,10 @@ const Message = (props: any) => {
             </div>
           ) : (
             <div className={`rounded-lg px-5 py-3 whitespace-pre-wrap break-words text-base font-normal ${isUser ? "bg-[#343541] text-white" : "bg-[#444654] text-white"}`} style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-              {!isUser && text === null ? (
+              {!isUser && (text === null || text === undefined) ? (
                 <TbCursorText className="h-6 w-6 animate-pulse" />
               ) : (
-                <span>{displayText}</span>
+                <span>{displayText || ''}</span>
               )}
             </div>
           )}

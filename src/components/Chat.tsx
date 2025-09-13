@@ -16,6 +16,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 const Chat = (props: any) => {
   const { toggleComponentVisibility, ensureThread, activeThreadId } = props;
+  const selectedModel = DEFAULT_OPENAI_MODEL;
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -26,12 +27,104 @@ const Chat = (props: any) => {
   const [isAttachMenuOpen, setIsAttachMenuOpen] = useState(false);
   const [editingTurnId, setEditingTurnId] = useState<string | null>(null);
   const [editingDraft, setEditingDraft] = useState<string>("");
+  
   const { trackEvent } = useAnalytics();
   const textAreaRef = useAutoResizeTextArea();
   const bottomOfChatRef = useRef<HTMLDivElement>(null);
   const uploadcareKey = process.env.NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY as string | undefined;
 
-  const selectedModel = DEFAULT_OPENAI_MODEL;
+  useEffect(() => {
+    console.log("Conversation updated:", conversation);
+    setShowEmptyChat(conversation.length === 0);
+  }, [conversation]);
+
+  const sendMessage = async (e: any) => {
+    e.preventDefault();
+    
+    if (!message.trim()) {
+      setErrorMessage("Please enter a message.");
+      return;
+    }
+    setErrorMessage("");
+
+    const userMessage = message;
+    setMessage("");
+    setAttachments([]);
+    setIsLoading(true);
+
+    try {
+      const threadId = await ensureThread?.();
+      if (!threadId) {
+        throw new Error("Please sign in to start a conversation.");
+      }
+
+      // 1. Save user message and update UI
+      const userTurnRes = await fetch(`/api/chat-history`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: userMessage, role: "user", threadId, model: selectedModel?.id }),
+      });
+
+      if (!userTurnRes.ok) {
+        throw new Error("Failed to save your message.");
+      }
+      
+      const userTurn = await userTurnRes.json();
+      setConversation(prev => [...prev, {
+        role: "user",
+        content: userMessage,
+        turnId: userTurn._id,
+        versions: userTurn.versions,
+        currentVersion: userTurn.currentVersion
+      }]);
+      setShowEmptyChat(false);
+
+      // 2. Get AI response
+      const aiRes = await fetch(`/api/openai`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [...conversation, { content: userMessage, role: "user" }],
+          model: selectedModel,
+          attachments
+        }),
+      });
+
+      if (!aiRes.ok) {
+        throw new Error("Failed to get AI response");
+      }
+
+      const aiData = await aiRes.json();
+      console.log("AI response received:", aiData);
+
+      // 3. Update UI and save AI response
+      setConversation(prev => [...prev, {
+        role: "assistant",
+        content: aiData.message,
+        turnId: userTurn._id
+      }]);
+
+      await fetch(`/api/chat-history`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: aiData.message,
+          role: "assistant",
+          threadId,
+          model: selectedModel?.id,
+          turnId: userTurn._id
+        }),
+      });
+
+      window.dispatchEvent(new Event('threads:refresh'));
+
+    } catch (error: any) {
+      console.error("Error in message flow:", error);
+      setErrorMessage(error.message || "An error occurred");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (textAreaRef.current) {
@@ -51,131 +144,44 @@ const Chat = (props: any) => {
     async function loadHistory() {
       if (!activeThreadId) {
         setConversation([]);
-        setShowEmptyChat(true);
         return;
       }
       try {
+        console.log("Loading history for thread:", activeThreadId);
         const res = await fetch(`/api/chat-history?threadId=${encodeURIComponent(activeThreadId)}`);
-        if (!res.ok) return;
+        if (!res.ok) {
+          console.error("Failed to load history:", res.status);
+          return;
+        }
         const turns = await res.json();
+        console.log("Loaded turns:", turns);
+        
         // Flatten turns into message list for the UI
         const msgs: any[] = [];
         for (const t of turns) {
-          msgs.push({ role: "user", content: t.userContent, versions: t.versions, currentVersion: t.currentVersion, turnId: t._id });
-          msgs.push({ role: "assistant", content: t.assistantContent, turnId: t._id });
+          if (t.userContent) {
+            msgs.push({ role: "user", content: t.userContent, versions: t.versions, currentVersion: t.currentVersion, turnId: t._id });
+          }
+          if (t.assistantContent) {
+            msgs.push({ role: "assistant", content: t.assistantContent, turnId: t._id });
+          }
         }
+        console.log("Processed messages:", msgs);
         setConversation(msgs);
-        setShowEmptyChat(msgs.length === 0);
-      } catch { }
+      } catch (error) {
+        console.error("Error loading history:", error);
+      }
     }
     loadHistory();
   }, [activeThreadId]);
 
-  const sendMessage = async (e: any) => {
-    e.preventDefault();
 
-    // Don't send empty messages
-    if (message.length < 1) {
-      setErrorMessage("Please enter a message.");
-      return;
-    } else {
-      setErrorMessage("");
-    }
 
-    trackEvent("send.message", { message: message });
-    setIsLoading(true);
-
-    // Add the message to the conversation (optimistic)
-    setConversation([
-      ...conversation,
-      { content: message, role: "user" },
-      { content: null, role: "assistant" },
-    ]);
-
-    // Clear the message & remove empty chat
-    setMessage("");
-    setAttachments([]);
-    setShowEmptyChat(false);
-
-    try {
-      // Ensure a thread exists
-      const threadId = await ensureThread?.();
-      if (!threadId) {
-        throw new Error("Please sign in to start a conversation.");
-      }
-
-      // Persist user turn and get turnId
-      const userTurnRes = await fetch(`/api/chat-history`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: message, role: "user", threadId, model: selectedModel?.id }),
-      });
-      if (!userTurnRes.ok) {
-        throw new Error("Failed to save your message.");
-      }
-      const userTurn = await userTurnRes.json();
-
-      // Attach turnId and versioning info to the last two messages
-      setConversation((prev) => {
-        if (prev.length < 2) return prev;
-        const updated = [...prev];
-        const userIndex = updated.length - 2;
-        const assistantIndex = updated.length - 1;
-        updated[userIndex] = { ...updated[userIndex], turnId: userTurn._id, versions: userTurn.versions, currentVersion: userTurn.currentVersion };
-        updated[assistantIndex] = { ...updated[assistantIndex], turnId: userTurn._id, userContent: updated[userIndex].content } as any;
-        return updated;
-      });
-
-      const response = await fetch(`/api/openai`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messages: [...conversation, { content: message, role: "user" }],
-          model: selectedModel,
-          attachments,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        // Persist assistant reply for same turn
-        await fetch(`/api/chat-history`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: data.message, role: "assistant", threadId, model: selectedModel?.id, turnId: userTurn?._id }),
-        });
-        // Signal threads list to refresh updatedAt/title
-        try { window.dispatchEvent(new Event('threads:refresh')); } catch { }
-
-        // Update the assistant placeholder with the generated content
-        setConversation((prev) => {
-          if (prev.length < 1) return prev;
-          const updated = [...prev];
-          const assistantIndex = updated.length - 1;
-          updated[assistantIndex] = { ...updated[assistantIndex], content: data.message } as any;
-          return updated;
-        });
-      } else {
-        console.error(response);
-        setErrorMessage(response.statusText);
-      }
-
-      setIsLoading(false);
-    } catch (error: any) {
-      console.error(error);
-      setErrorMessage(error.message);
-
-      setIsLoading(false);
-    }
-  };
-
-  const handleKeypress = (e: any) => {
-    // It's triggers by pressing the enter key
-    if (e.keyCode == 13 && !e.shiftKey) {
-      sendMessage(e);
+  const handleKeypress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Triggers when pressing the enter key
+    if (e.keyCode === 13 && !e.shiftKey) {
       e.preventDefault();
+      sendMessage(e);
     }
   };
 
@@ -193,13 +199,16 @@ const Chat = (props: any) => {
       }
       setConversation(msgs);
       setShowEmptyChat(msgs.length === 0);
-    } catch { }
+    } catch (err: any) {
+      console.error("Error refreshing conversation:", err);
+      setErrorMessage("Failed to refresh conversation");
+    }
   };
 
   const beginEdit = (msg: any) => {
     if (!msg?.turnId) return;
     setEditingTurnId(msg.turnId);
-    setEditingDraft(msg?.content || "");
+    setEditingDraft(msg.content || "");
   };
 
   const cancelEdit = () => {
@@ -211,8 +220,13 @@ const Chat = (props: any) => {
     const turnId = editingTurnId;
     const newContent = editingDraft;
     if (!activeThreadId || !turnId) return;
-    if (typeof newContent !== "string" || newContent.trim().length === 0) return;
+    if (!newContent?.trim()) return;
+
+    setIsLoading(true);
+    setErrorMessage("");
+
     try {
+      // Update user message
       const patchRes = await fetch(`/api/chat-history`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -220,73 +234,111 @@ const Chat = (props: any) => {
       });
       if (!patchRes.ok) throw new Error("Failed to save edited message");
 
+      // Get new AI response
       const aiRes = await fetch(`/api/openai`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: [{ role: "user", content: newContent }], model: selectedModel }),
+        body: JSON.stringify({ 
+          messages: [{ role: "user", content: newContent }],
+          model: selectedModel
+        }),
       });
-      if (!aiRes.ok) throw new Error("Failed to regenerate response");
+      if (!aiRes.ok) throw new Error("Failed to get AI response");
       const aiData = await aiRes.json();
 
+      // Save AI response
       await fetch(`/api/chat-history`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: aiData.message, role: "assistant", threadId: activeThreadId, model: selectedModel?.id, turnId }),
+        body: JSON.stringify({ 
+          content: aiData.message,
+          role: "assistant",
+          threadId: activeThreadId,
+          model: selectedModel?.id,
+          turnId 
+        }),
       });
 
       await refreshConversation();
-      setEditingTurnId(null);
-      setEditingDraft("");
-      try { window.dispatchEvent(new Event('threads:refresh')); } catch { }
+      cancelEdit();
+      window.dispatchEvent(new Event('threads:refresh'));
     } catch (err: any) {
-      setErrorMessage(err?.message || "Edit failed");
+      console.error("Edit failed:", err);
+      setErrorMessage(err.message || "Failed to save edit");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleVersionNav = async (msg: any, direction: "prev" | "next") => {
-    const turnId = msg?.turnId;
-    if (!activeThreadId || !turnId) return;
-    const total = Array.isArray(msg?.versions) ? msg.versions.length : 0;
-    const current = typeof msg?.currentVersion === 'number' ? msg.currentVersion : total - 1;
+    if (!activeThreadId || !msg?.turnId) return;
+    
+    const versions = msg.versions || [];
+    const current = msg.currentVersion ?? (versions.length - 1);
     const nextIndex = direction === "prev" ? current - 1 : current + 1;
-    if (nextIndex < 0 || nextIndex >= total) return;
+    
+    if (nextIndex < 0 || nextIndex >= versions.length) return;
+    
     try {
-      const putRes = await fetch(`/api/chat-history`, {
+      const res = await fetch(`/api/chat-history`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ turnId, threadId: activeThreadId, version: nextIndex }),
+        body: JSON.stringify({ 
+          turnId: msg.turnId,
+          threadId: activeThreadId,
+          version: nextIndex 
+        }),
       });
-      if (!putRes.ok) throw new Error("Failed to switch version");
+      if (!res.ok) throw new Error("Failed to switch version");
+      
       await refreshConversation();
-      try { window.dispatchEvent(new Event('threads:refresh')); } catch { }
+      window.dispatchEvent(new Event('threads:refresh'));
     } catch (err: any) {
-      setErrorMessage(err?.message || "Version switch failed");
+      console.error("Version switch failed:", err);
+      setErrorMessage(err.message || "Failed to switch version");
     }
   };
 
   const handleRetry = async (msg: any) => {
-    const turnId = msg?.turnId;
-    if (!activeThreadId || !turnId) return;
-    // Find the corresponding user message content in current conversation
-    const userMsg = conversation.find((m: any) => m.role === 'user' && m.turnId === turnId);
-    const userContent = userMsg?.content || msg?.userContent;
+    if (!activeThreadId || !msg?.turnId) return;
+    
+    const userMsg = conversation.find(m => m.role === 'user' && m.turnId === msg.turnId);
+    const userContent = userMsg?.content || msg.userContent;
     if (!userContent) return;
+
+    setIsLoading(true);
+    setErrorMessage("");
+    
     try {
       const aiRes = await fetch(`/api/openai`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: [{ role: "user", content: userContent }], model: selectedModel }),
+        body: JSON.stringify({ 
+          messages: [{ role: "user", content: userContent }],
+          model: selectedModel 
+        }),
       });
-      if (!aiRes.ok) throw new Error("Failed to regenerate response");
+      if (!aiRes.ok) throw new Error("Failed to get AI response");
+      
       const aiData = await aiRes.json();
       await fetch(`/api/chat-history`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: aiData.message, role: "assistant", threadId: activeThreadId, model: selectedModel?.id, turnId }),
+        body: JSON.stringify({
+          content: aiData.message,
+          role: "assistant",
+          threadId: activeThreadId,
+          model: selectedModel?.id,
+          turnId: msg.turnId
+        }),
       });
+
       await refreshConversation();
     } catch (err: any) {
-      setErrorMessage(err?.message || "Retry failed");
+      console.error("Retry failed:", err);
+      setErrorMessage(err.message || "Failed to retry");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -337,7 +389,7 @@ const Chat = (props: any) => {
         <div className="flex-1 overflow-hidden">
           <div className="h-full bg-chatgpt-bg">
             <div>
-              {!showEmptyChat && conversation.length > 0 ? (
+              {!showEmptyChat ? (
                 <div className="flex flex-col items-center text-sm bg-chatgpt-bg">
                   <div className="flex w-full items-center justify-center gap-1 border-b border-chatgpt-border bg-chatgpt-card py-2 text-gray-300 text-xs">
                     <span className="opacity-70">Model:</span> <span className="font-medium">{selectedModel.name}</span>
@@ -347,22 +399,25 @@ const Chat = (props: any) => {
                     className="w-full flex flex-col overflow-y-auto"
                     style={{ maxHeight: "calc(100vh - 220px)" }}
                   >
-                    {conversation.map((message, index) => (
-                      <Message
-                        key={index}
-                        message={message}
-                        onEdit={message.role === 'user' ? beginEdit : undefined}
-                        isEditing={message.role === 'user' && message.turnId === editingTurnId}
-                        editingText={message.role === 'user' && message.turnId === editingTurnId ? editingDraft : undefined}
-                        onEditingChange={(val: string) => setEditingDraft(val)}
-                        onSaveEdit={saveEdit}
-                        onCancelEdit={cancelEdit}
-                        onPrevVersion={message.role === 'user' ? (m: any) => handleVersionNav(m, 'prev') : undefined}
-                        onNextVersion={message.role === 'user' ? (m: any) => handleVersionNav(m, 'next') : undefined}
-                        onRetry={message.role === 'assistant' ? handleRetry : undefined}
-                        onCopy={(text: string) => navigator.clipboard?.writeText?.(text)}
-                      />
-                    ))}
+                    {conversation.map((message, index) => {
+                      console.log("Rendering message:", message); // Debug log
+                      return (
+                        <Message
+                          key={index}
+                          message={message}
+                          onEdit={message.role === 'user' ? beginEdit : undefined}
+                          isEditing={message.role === 'user' && message.turnId === editingTurnId}
+                          editingText={message.role === 'user' && message.turnId === editingTurnId ? editingDraft : undefined}
+                          onEditingChange={(val: string) => setEditingDraft(val)}
+                          onSaveEdit={saveEdit}
+                          onCancelEdit={cancelEdit}
+                          onPrevVersion={message.role === 'user' ? (m: any) => handleVersionNav(m, 'prev') : undefined}
+                          onNextVersion={message.role === 'user' ? (m: any) => handleVersionNav(m, 'next') : undefined}
+                          onRetry={message.role === 'assistant' ? handleRetry : undefined}
+                          onCopy={(text: string) => navigator.clipboard?.writeText?.(text)}
+                        />
+                      );
+                    })}
                     <div className="w-full h-32 md:h-48 flex-shrink-0"></div>
                     <div ref={bottomOfChatRef}></div>
                   </div>
