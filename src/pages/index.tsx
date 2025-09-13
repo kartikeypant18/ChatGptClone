@@ -22,12 +22,6 @@ export default function Home() {
   const ensureThread = async () => {
     if (!isSignedIn) return null;
     if (activeThreadId) return activeThreadId;
-    const res = await fetch('/api/threads', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-    if (res.ok) {
-      const data = await res.json();
-      setActiveThreadId(data._id);
-      return data._id as string;
-    }
     return null;
   };
 

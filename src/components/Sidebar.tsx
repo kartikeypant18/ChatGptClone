@@ -90,14 +90,9 @@ const Sidebar = (props: any) => {
     <aside role="navigation" aria-label="Conversations" className="flex flex-col h-full w-[260px] bg-[var(--sidebar)] border-r border-[var(--border)] select-none">
       {/* Top: New Chat */}
       <div className="p-2">
-        <Button onClick={async () => {
+        <Button onClick={() => {
           if (!isSignedIn) return;
-          const res = await fetch('/api/threads', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-          if (res.ok) {
-            const data = await res.json();
-            onCreateThread?.(data._id, data);
-            await loadThreads();
-          }
+          onCreateThread?.(null);
         }} className="w-full flex items-center gap-3 rounded-full bg-[var(--background)] text-white border-0 hover:bg-[var(--card)] px-4 py-3 h-12 shadow-none" aria-label="New chat">
           <AiOutlinePlus className="h-5 w-5" />
           <span className="font-medium text-base">New chat</span>

@@ -38,3 +38,4 @@ next-env.d.ts
 # dotenv variables
 .env
 .env.example
+.env.local

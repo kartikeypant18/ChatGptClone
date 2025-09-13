@@ -53,9 +53,20 @@ const Chat = (props: any) => {
     setIsLoading(true);
 
     try {
-      const threadId = await ensureThread?.();
+      let threadId = await ensureThread?.();
+      
+      // Create new thread if one doesn't exist
       if (!threadId) {
-        throw new Error("Please sign in to start a conversation.");
+        const res = await fetch('/api/threads', { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: message.slice(0, 60) })
+        });
+        if (!res.ok) {
+          throw new Error("Failed to create new chat.");
+        }
+        const data = await res.json();
+        threadId = data._id;
       }
 
       // 1. Save user message and update UI
