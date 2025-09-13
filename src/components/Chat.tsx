@@ -48,9 +48,13 @@ const Chat = (props: any) => {
     const userMessage = message;
     setMessage("");
     setAttachments([]);
-    setIsLoading(true);
-
-    try {
+      setIsLoading(true);
+      // Add loading message temporarily
+      setConversation(prev => [...prev, {
+        role: 'assistant',
+        content: '...',
+        isLoading: true
+      }]);    try {
       let threadId = activeThreadId;
       
       // If there's no active thread, create one for a new chat
@@ -416,20 +420,22 @@ const Chat = (props: any) => {
                     {conversation.map((message, index) => {
                       console.log("Rendering message:", message); // Debug log
                       return (
-                        <Message
-                          key={index}
-                          message={message}
-                          onEdit={message.role === 'user' ? beginEdit : undefined}
-                          isEditing={message.role === 'user' && message.turnId === editingTurnId}
-                          editingText={message.role === 'user' && message.turnId === editingTurnId ? editingDraft : undefined}
-                          onEditingChange={(val: string) => setEditingDraft(val)}
-                          onSaveEdit={saveEdit}
-                          onCancelEdit={cancelEdit}
-                          onPrevVersion={message.role === 'user' ? (m: any) => handleVersionNav(m, 'prev') : undefined}
-                          onNextVersion={message.role === 'user' ? (m: any) => handleVersionNav(m, 'next') : undefined}
-                          onRetry={message.role === 'assistant' ? handleRetry : undefined}
-                          onCopy={(text: string) => navigator.clipboard?.writeText?.(text)}
-                        />
+                        <div className="message-appear hover-message">
+                          <Message
+                            key={index}
+                            message={message}
+                            onEdit={message.role === 'user' ? beginEdit : undefined}
+                            isEditing={message.role === 'user' && message.turnId === editingTurnId}
+                            editingText={message.role === 'user' && message.turnId === editingTurnId ? editingDraft : undefined}
+                            onEditingChange={(val: string) => setEditingDraft(val)}
+                            onSaveEdit={saveEdit}
+                            onCancelEdit={cancelEdit}
+                            onPrevVersion={message.role === 'user' ? (m: any) => handleVersionNav(m, 'prev') : undefined}
+                            onNextVersion={message.role === 'user' ? (m: any) => handleVersionNav(m, 'next') : undefined}
+                            onRetry={message.role === 'assistant' ? handleRetry : undefined}
+                            onCopy={(text: string) => navigator.clipboard?.writeText?.(text)}
+                          />
+                        </div>
                       );
                     })}
                     <div className="w-full h-32 md:h-48 flex-shrink-0"></div>

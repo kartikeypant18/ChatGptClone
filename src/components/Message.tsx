@@ -13,10 +13,11 @@ const Message = (props: any) => {
 
   const isUser = role === "user";
   const displayText = text || "";  // Simplified content handling
+  const isLoading = message.isLoading;
 
   return (
     <div className={`w-full flex justify-center ${isUser ? "bg-[#343541]" : "bg-[#444654]"}`}>
-      <div className={`w-full max-w-3xl flex flex-row gap-4 px-4 py-2`}>
+      <div className={`w-full max-w-3xl flex flex-row gap-4 px-4 py-2 ${isLoading ? 'loading-pulse' : ''}`}>
         <div className="w-8 flex flex-col items-center pt-1">
           <div className={`h-8 w-8 rounded-full flex items-center justify-center ${isUser ? "bg-[#19C37D]" : "bg-black"}`}>
             {isUser ? (
