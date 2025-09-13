@@ -18,12 +18,19 @@ const Sidebar = (props: any) => {
       return;
     }
     try {
-      const res = await fetch('/api/threads', { cache: 'no-store' });
+      const res = await fetch('/api/threads', { 
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' }
+      });
       if (res.ok) {
         const data = await res.json();
         setThreads(data);
+      } else {
+        console.error('Failed to load threads:', res.status);
       }
-    } catch { }
+    } catch (error) {
+      console.error('Error loading threads:', error);
+    }
   };
 
   const handleDelete = async (threadId: string) => {
@@ -48,20 +55,37 @@ const Sidebar = (props: any) => {
 
   // Refresh thread list when other parts of the app signal updates
   useEffect(() => {
-    function handleRefresh() {
-      loadThreads();
+    let isSubscribed = true;
+    
+    async function handleRefresh() {
+      if (isSubscribed) {
+        await loadThreads();
+      }
     }
+
+    const handleFocus = async () => {
+      if (isSubscribed && document.hasFocus()) {
+        await loadThreads();
+      }
+    };
+
+    const handleVisibility = async () => {
+      if (isSubscribed && document.visibilityState === 'visible') {
+        await loadThreads();
+      }
+    };
+
     window.addEventListener('threads:refresh', handleRefresh as any);
-    const handleFocus = () => loadThreads();
-    const handleVisibility = () => { if (document.visibilityState === 'visible') loadThreads(); };
     window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
+      isSubscribed = false;
       window.removeEventListener('threads:refresh', handleRefresh as any);
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, []);
+  }, [isSignedIn]);
   return (
     <aside role="navigation" aria-label="Conversations" className="flex flex-col h-full w-[260px] bg-[var(--sidebar)] border-r border-[var(--border)] select-none">
       {/* Top: New Chat */}

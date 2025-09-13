@@ -104,7 +104,7 @@ const Chat = (props: any) => {
         turnId: userTurn._id
       }]);
 
-      await fetch(`/api/chat-history`, {
+      const saveRes = await fetch(`/api/chat-history`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -116,7 +116,11 @@ const Chat = (props: any) => {
         }),
       });
 
-      window.dispatchEvent(new Event('threads:refresh'));
+      if (saveRes.ok) {
+        window.dispatchEvent(new Event('threads:refresh'));
+      } else {
+        console.error('Failed to save assistant response:', saveRes.status);
+      }
 
     } catch (error: any) {
       console.error("Error in message flow:", error);
