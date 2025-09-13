@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { FiSend } from "react-icons/fi";
-import { BsPlus } from "react-icons/bs";
-import { FiMic } from "react-icons/fi";
-import { MdGraphicEq } from "react-icons/md";
-import { BsChevronDown, BsPlusLg } from "react-icons/bs";
+import { BsPlus, BsChevronDown, BsPlusLg } from "react-icons/bs";
 import { RxHamburgerMenu } from "react-icons/rx";
 import useAnalytics from "@/hooks/useAnalytics";
 import useAutoResizeTextArea from "@/hooks/useAutoResizeTextArea";
@@ -38,8 +35,9 @@ const Chat = (props: any) => {
     setShowEmptyChat(conversation.length === 0);
   }, [conversation]);
 
-  const sendMessage = async (e: any) => {
-    e.preventDefault();
+  const sendMessage = async (e?: React.FormEvent | React.KeyboardEvent) => {
+    // Prevent form submission
+    e?.preventDefault?.();
     
     if (!message.trim()) {
       setErrorMessage("Please enter a message.");
@@ -53,9 +51,9 @@ const Chat = (props: any) => {
     setIsLoading(true);
 
     try {
-      let threadId = await ensureThread?.();
+      let threadId = activeThreadId;
       
-      // Create new thread if one doesn't exist
+      // If there's no active thread, create one for a new chat
       if (!threadId) {
         const res = await fetch('/api/threads', { 
           method: 'POST', 
@@ -66,7 +64,8 @@ const Chat = (props: any) => {
           throw new Error("Failed to create new chat.");
         }
         const data = await res.json();
-        threadId = data._id;
+        threadId = data._id; // Use the threadId directly
+        props.onCreateThread?.(data._id); // Update parent state
       }
 
       // 1. Save user message and update UI
@@ -193,8 +192,8 @@ const Chat = (props: any) => {
 
 
   const handleKeypress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Triggers when pressing the enter key
-    if (e.keyCode === 13 && !e.shiftKey) {
+    // Triggers when pressing the enter key without shift (for newline)
+    if ((e.key === 'Enter' || e.code === 'Enter' || e.keyCode === 13) && !e.shiftKey) {
       e.preventDefault();
       sendMessage(e);
     }
@@ -527,9 +526,6 @@ const Chat = (props: any) => {
                       </span>
                     ))}
                   </div>
-                  <button type="button" aria-label="Start voice input" className="flex items-center justify-center w-9 h-9 rounded-full bg-[#353740] text-gray-300 hover:bg-[#40414f] focus:outline-none mr-1">
-                    <FiMic className="w-5 h-5" />
-                  </button>
                   <button
                     type="button"
                     disabled={isLoading || message?.length === 0}
@@ -537,7 +533,7 @@ const Chat = (props: any) => {
                     aria-label="Send message"
                     className="flex items-center justify-center w-9 h-9 rounded-full bg-[#353740] text-gray-300 hover:bg-[#40414f] focus:outline-none disabled:opacity-40"
                   >
-                    <MdGraphicEq className="w-5 h-5" />
+                    <FiSend className="w-5 h-5" />
                   </button>
                 </div>
               </div>

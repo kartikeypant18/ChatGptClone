@@ -45,7 +45,7 @@ export default function Home() {
       <Chat
         toggleComponentVisibility={toggleComponentVisibility}
         activeThreadId={activeThreadId}
-        ensureThread={ensureThread}
+        onCreateThread={(id: string) => setActiveThreadId(id)}
         onRequireSignIn={() => { }}
       />
     </main>
