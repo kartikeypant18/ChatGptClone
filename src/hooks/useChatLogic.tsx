@@ -3,14 +3,31 @@ import useAnalytics from "@/hooks/useAnalytics";
 import useAutoResizeTextArea from "@/hooks/useAutoResizeTextArea";
 import { DEFAULT_OPENAI_MODEL } from "@/shared/Constants";
 
-export default function useChatLogic(props: any) {
+interface UseChatLogicProps {
+  toggleComponentVisibility: () => void;
+  ensureThread: () => Promise<string>;
+  activeThreadId: string | null;
+  [key: string]: any;
+}
+
+interface ConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  versions?: string[];
+  currentVersion?: number;
+  turnId?: string;
+  isLoading?: boolean;
+  [key: string]: any;
+}
+
+export default function useChatLogic(props: UseChatLogicProps) {
   const { toggleComponentVisibility, ensureThread, activeThreadId } = props;
   const selectedModel = DEFAULT_OPENAI_MODEL;
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [showEmptyChat, setShowEmptyChat] = useState(true);
-  const [conversation, setConversation] = useState<any[]>([]);
+  const [conversation, setConversation] = useState<ConversationMessage[]>([]);
   const [message, setMessage] = useState("");
   const [attachments, setAttachments] = useState<{ url: string; type: 'image' | 'document' }[]>([]);
   const [isAttachMenuOpen, setIsAttachMenuOpen] = useState(false);

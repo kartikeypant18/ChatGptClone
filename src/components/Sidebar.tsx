@@ -6,10 +6,22 @@ import { MdLogout } from "react-icons/md";
 import { Button } from "@/components/ui/button";
 import { useUser, SignInButton, UserButton } from "@clerk/nextjs";
 
-const Sidebar = (props: any) => {
+interface SidebarProps {
+  onSelectThread: (threadId: string) => void;
+  onCreateThread: () => void;
+  activeThreadId: string | null;
+}
+
+interface Thread {
+  _id: string;
+  title: string;
+  [key: string]: any;
+}
+
+const Sidebar = (props: SidebarProps) => {
   const { onSelectThread, onCreateThread, activeThreadId } = props;
   const { isSignedIn, isLoaded, user } = useUser();
-  const [threads, setThreads] = useState<any[]>([]);
+  const [threads, setThreads] = useState<Thread[]>([]);
   const [confirming, setConfirming] = useState<{ id: string; title: string } | null>(null);
 
   const loadThreads = async () => {
@@ -38,7 +50,7 @@ const Sidebar = (props: any) => {
       const res = await fetch('/api/threads', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ threadId }) });
       if (!res.ok) throw new Error('Failed to delete');
       if (activeThreadId === threadId) {
-        onSelectThread?.(null);
+        onSelectThread?.("");
       }
       await loadThreads();
       try { window.dispatchEvent(new Event('threads:refresh')); } catch { }
@@ -92,7 +104,7 @@ const Sidebar = (props: any) => {
       <div className="p-2">
         <Button onClick={() => {
           if (!isSignedIn) return;
-          onCreateThread?.(null);
+          onCreateThread?.();
         }} className="w-full flex items-center gap-3 rounded-full bg-[var(--background)] text-white border-0 hover:bg-[var(--card)] px-4 py-3 h-12 shadow-none" aria-label="New chat">
           <AiOutlinePlus className="h-5 w-5" />
           <span className="font-medium text-base">New chat</span>
@@ -102,7 +114,7 @@ const Sidebar = (props: any) => {
       <div className="flex-1 flex flex-col gap-1 px-2 overflow-y-auto">
         {threads.map((t) => (
           <div key={t._id} className="group relative">
-            <Button onClick={() => onSelectThread?.(t._id, t)} variant={activeThreadId === t._id ? "default" : "ghost"} className={`flex items-center gap-3 rounded-lg px-3 py-3 w-full justify-start ${activeThreadId === t._id ? 'bg-[var(--card)] text-white' : 'text-slate-200 hover:bg-[var(--hover)]'}`} aria-label={`Open conversation ${t.title || 'Untitled'}`}>
+            <Button onClick={() => onSelectThread?.(t._id)} variant={activeThreadId === t._id ? "default" : "ghost"} className={`flex items-center gap-3 rounded-lg px-3 py-3 w-full justify-start ${activeThreadId === t._id ? 'bg-[var(--card)] text-white' : 'text-slate-200 hover:bg-[var(--hover)]'}`} aria-label={`Open conversation ${t.title || 'Untitled'}`}>
               <FiMessageSquare className="h-5 w-5" />
               <span className="flex-1 text-ellipsis max-h-5 overflow-hidden break-all relative text-sm">{t.title || 'Untitled'}</span>
             </Button>

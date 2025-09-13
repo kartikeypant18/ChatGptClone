@@ -3,7 +3,14 @@ import { IoMdClose } from "react-icons/io";
 import Sidebar from "./Sidebar";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
-const MobileSiderbar = (props: any) => {
+interface MobileSidebarProps {
+  toggleComponentVisibility: () => void;
+  onSelectThread: (threadId: string) => void;
+  onCreateThread: () => void;
+  activeThreadId: string | null;
+}
+
+const MobileSiderbar = (props: MobileSidebarProps) => {
   const { toggleComponentVisibility, onSelectThread, onCreateThread, activeThreadId } = props;
   return (
     <Sheet open onOpenChange={toggleComponentVisibility}>

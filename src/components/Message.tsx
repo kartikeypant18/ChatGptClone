@@ -7,7 +7,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { FiThumbsUp, FiThumbsDown, FiCopy, FiRotateCcw, FiMoreHorizontal, FiChevronLeft, FiChevronRight, FiEdit3 } from "react-icons/fi";
 import { Card } from "@/components/ui/card";
 
-const Message = (props: any) => {
+
+import { ConversationMessage } from "@/types/Chat";
+
+interface MessageProps {
+  message: ConversationMessage;
+  onEdit?: () => void;
+  onPrevVersion?: () => void;
+  onNextVersion?: () => void;
+  onRetry?: () => void;
+  onCopy?: () => void;
+  isEditing?: boolean;
+  editingText?: string;
+  onEditingChange?: (text: string) => void;
+  onSaveEdit?: () => void;
+  onCancelEdit?: () => void;
+}
+
+const Message = (props: MessageProps) => {
   const { message, onEdit, onPrevVersion, onNextVersion, onRetry, onCopy, isEditing, editingText, onEditingChange, onSaveEdit, onCancelEdit } = props;
   const { role, content: text, versions, currentVersion } = message;
 
@@ -64,20 +81,23 @@ const Message = (props: any) => {
           <div className="mt-2 flex items-center gap-3">
             <div className="ml-auto flex items-center gap-1 text-xs text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity">
               {isUser && onEdit ? (
-                <button title="Edit" className="p-2 rounded hover:bg-[#2A2B32]" onClick={() => onEdit(message)}><FiEdit3 /></button>
+                <>
+                  <button title="Edit" className="p-2 rounded hover:bg-[#2A2B32]" onClick={onEdit}><FiEdit3 /></button>
+                </>
               ) : null}
-              <button title="Copy" className="p-2 rounded hover:bg-[#2A2B32]" onClick={() => onCopy?.(displayText)}><FiCopy /></button>
+              <button title="Copy" className="p-2 rounded hover:bg-[#2A2B32]" onClick={onCopy}><FiCopy /></button>
               {!isUser && (
                 <>
                   <button title="Good response" className="p-2 rounded hover:bg-[#2A2B32]"><FiThumbsUp /></button>
                   <button title="Bad response" className="p-2 rounded hover:bg-[#2A2B32]"><FiThumbsDown /></button>
-                  <button title="Regenerate" className="p-2 rounded hover:bg-[#2A2B32]" onClick={() => onRetry?.(message)}><FiRotateCcw /></button>
+                  <button title="Regenerate" className="p-2 rounded hover:bg-[#2A2B32]" onClick={onRetry}><FiRotateCcw /></button>
+                  <button title="Regenerate" className="p-2 rounded hover:bg-[#2A2B32]" onClick={onRetry}><FiRotateCcw /></button>
                 </>
               )}
               {isUser && Array.isArray(versions) && versions.length > 1 ? (
                 <div className="flex items-center gap-1 ml-1">
-                  <button title="Previous" className="p-2 rounded hover:bg-[#2A2B32]" onClick={() => onPrevVersion?.(message)}><FiChevronLeft /></button>
-                  <button title="Next" className="p-2 rounded hover:bg-[#2A2B32]" onClick={() => onNextVersion?.(message)}><FiChevronRight /></button>
+                  <button title="Previous" className="p-2 rounded hover:bg-[#2A2B32]" onClick={onPrevVersion}><FiChevronLeft /></button>
+                  <button title="Next" className="p-2 rounded hover:bg-[#2A2B32]" onClick={onNextVersion}><FiChevronRight /></button>
                 </div>
               ) : null}
               <button title="More" className="p-2 rounded hover:bg-[#2A2B32]"><FiMoreHorizontal /></button>

@@ -4,13 +4,21 @@ import { RxHamburgerMenu } from "react-icons/rx";
 import Message from "./Message";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import useChatLogic from "@/hooks/useChatLogic";
+import useChatLogic from "@/hooks/useChatLogic"; 
+import { UseChatLogicProps } from "@/types/Chat";
 import useUploadcare from "@/hooks/useUploadcare";
 
+interface ChatProps extends UseChatLogicProps {
+  toggleComponentVisibility: () => void;
+}
 
-const Chat = (props: any) => {
+const Chat = (props: ChatProps) => {
   const uploadcareKey = process.env.NEXT_PUBLIC_UPLOADCARE_PUBLIC_KEY as string | undefined;
-  const chat = useChatLogic(props);
+  const chat = useChatLogic({
+    toggleComponentVisibility: props.toggleComponentVisibility,
+    ensureThread: props.ensureThread,
+    activeThreadId: props.activeThreadId
+  });
   const { openUploadDialog } = useUploadcare(uploadcareKey);
 
   return (
@@ -44,16 +52,16 @@ const Chat = (props: any) => {
                       <div className="message-appear hover-message" key={index}>
                         <Message
                           message={message}
-                          onEdit={message.role === 'user' ? chat.beginEdit : undefined}
+                          onEdit={message.role === 'user' ? () => chat.beginEdit(message) : undefined}
                           isEditing={message.role === 'user' && message.turnId === chat.editingTurnId}
                           editingText={message.role === 'user' && message.turnId === chat.editingTurnId ? chat.editingDraft : undefined}
                           onEditingChange={chat.setEditingDraft}
                           onSaveEdit={chat.saveEdit}
                           onCancelEdit={chat.cancelEdit}
-                          onPrevVersion={message.role === 'user' ? (m: any) => chat.handleVersionNav(m, 'prev') : undefined}
-                          onNextVersion={message.role === 'user' ? (m: any) => chat.handleVersionNav(m, 'next') : undefined}
-                          onRetry={message.role === 'assistant' ? chat.handleRetry : undefined}
-                          onCopy={(text: string) => navigator.clipboard?.writeText?.(text)}
+                          onPrevVersion={message.role === 'user' ? () => chat.handleVersionNav(message, 'prev') : undefined}
+                          onNextVersion={message.role === 'user' ? () => chat.handleVersionNav(message, 'next') : undefined}
+                          onRetry={message.role === 'assistant' ? () => chat.handleRetry(message) : undefined}
+                          onCopy={message.content ? () => navigator.clipboard?.writeText?.(message.content) : undefined}
                         />
                       </div>
                     ))}
