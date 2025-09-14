@@ -13,16 +13,20 @@ export default function Home() {
 
   useEffect(() => {
     trackEvent("page.view", { page: "home" });
-  }, []);
+  }, [trackEvent]);
 
   const toggleComponentVisibility = () => {
     setIsComponentVisible(!isComponentVisible);
   };
 
   const ensureThread = async () => {
-    if (!isSignedIn) return null;
+    if (!isSignedIn) throw new Error("Not signed in");
     if (activeThreadId) return activeThreadId;
-    return null;
+    throw new Error("No active thread");
+  };
+
+  const handleCreateThread = () => {
+    // Create new thread logic here
   };
 
   return (
@@ -31,21 +35,22 @@ export default function Home() {
         <MobileSiderbar
           toggleComponentVisibility={toggleComponentVisibility}
           activeThreadId={activeThreadId}
-          onCreateThread={(id: string) => setActiveThreadId(id)}
+          onCreateThread={handleCreateThread}
           onSelectThread={(id: string) => setActiveThreadId(id)}
         />
       ) : null}
       <div className="hidden md:flex md:w-[260px] md:flex-col bg-[#202123] border-r border-[#343541]">
         <Sidebar
           activeThreadId={activeThreadId}
-          onCreateThread={(id: string) => setActiveThreadId(id)}
+          onCreateThread={handleCreateThread}
           onSelectThread={(id: string) => setActiveThreadId(id)}
         />
       </div>
       <Chat
         toggleComponentVisibility={toggleComponentVisibility}
         activeThreadId={activeThreadId}
-        onCreateThread={(id: string) => setActiveThreadId(id)}
+        ensureThread={ensureThread}
+        onCreateThread={handleCreateThread}
         onRequireSignIn={() => { }}
       />
     </main>

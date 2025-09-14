@@ -2,6 +2,7 @@ export interface UseChatLogicProps {
   toggleComponentVisibility: () => void;
   ensureThread: () => Promise<string>;
   activeThreadId: string | null;
+  onCreateThread?: () => void;
   [key: string]: any;
 }
 

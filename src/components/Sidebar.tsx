@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { AiOutlinePlus, AiOutlineSetting } from "react-icons/ai";
 import { FiMessageSquare, FiTrash2 } from "react-icons/fi";
 import { BiLinkExternal } from "react-icons/bi";
@@ -24,7 +24,7 @@ const Sidebar = (props: SidebarProps) => {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [confirming, setConfirming] = useState<{ id: string; title: string } | null>(null);
 
-  const loadThreads = async () => {
+  const loadThreads = useCallback(async () => {
     if (!isSignedIn) {
       setThreads([]);
       return;
@@ -43,7 +43,7 @@ const Sidebar = (props: SidebarProps) => {
     } catch (error) {
       console.error('Error loading threads:', error);
     }
-  };
+  }, [isSignedIn]);
 
   const handleDelete = async (threadId: string) => {
     try {
@@ -63,7 +63,7 @@ const Sidebar = (props: SidebarProps) => {
     } else if (isLoaded && !isSignedIn) {
       setThreads([]);
     }
-  }, [isLoaded, isSignedIn]);
+  }, [isLoaded, isSignedIn, loadThreads]);
 
   // Refresh thread list when other parts of the app signal updates
   useEffect(() => {
