@@ -8,12 +8,7 @@
 # testing
 /coverage
 
-# next.js
-/.next/
-/out/
 
-# production
-/build
 
 # misc
 .DS_Store
@@ -27,43 +22,10 @@ yarn-error.log*
 # local env files
 .env*.local
 
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
 
 
 # dotenv variables
 .env
 .env.example
 .env.local
-
-# IDE specific files
-.idea/
-.vscode/
-*.swp
-*.swo
-*.sublime-workspace
-*.sublime-project
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Logs and databases
-*.log
-*.sql
-*.sqlite
-
-# Cache directories
-.cache/
-.npm/
-.eslintcache
 

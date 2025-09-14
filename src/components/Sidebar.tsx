@@ -97,7 +97,7 @@ const Sidebar = (props: SidebarProps) => {
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [isSignedIn]);
+  }, [isSignedIn, loadThreads]);
   return (
     <aside role="navigation" aria-label="Conversations" className="flex flex-col h-full w-[260px] bg-[var(--sidebar)] border-r border-[var(--border)] select-none">
       {/* Top: New Chat */}
