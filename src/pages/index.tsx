@@ -26,7 +26,8 @@ export default function Home() {
   };
 
   const handleCreateThread = () => {
-    // Create new thread logic here
+    setActiveThreadId(null);
+    window.dispatchEvent(new Event('threads:refresh'));
   };
 
   return (
