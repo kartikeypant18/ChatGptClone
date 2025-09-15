@@ -1,6 +1,6 @@
-import type { NextConfig } from 'next';
+/** @type {import('next').NextConfig} */
 
-const nextConfig: NextConfig = {
+const nextConfig = {
   reactStrictMode: false,
   env: {
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
     APP_ENV: process.env.APP_ENV,
     APP_NAME: process.env.APP_NAME
   },
-  webpack: (config: any) => {
+  webpack: (config) => {
     // Suppress the warning about useContext
     config.ignoreWarnings = [
       { module: /next\/dist\/.*/ }
