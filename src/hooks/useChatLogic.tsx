@@ -161,8 +161,18 @@ export default function useChatLogic(props: UseChatLogicProps) {
   const saveEdit = async () => {
     const turnId = editingTurnId;
     const newContent = editingDraft;
-    if (!activeThreadId || !turnId) return;
-    if (!newContent?.trim()) return;
+    if (!activeThreadId) {
+      setErrorMessage("No active chat. Cannot save edit.");
+      return;
+    }
+    if (!turnId) {
+      setErrorMessage("No message selected for editing.");
+      return;
+    }
+    if (!newContent?.trim()) {
+      setErrorMessage("Message cannot be empty.");
+      return;
+    }
     setIsLoading(true);
     setErrorMessage("");
     try {

@@ -3,6 +3,7 @@
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
   "/": "pages/index.js",
+  "/api/chat-history": "pages/api/chat-history.js",
   "/api/threads": "pages/api/threads.js",
-  "/api/chat-history": "pages/api/chat-history.js"
+  "/api/openai": "pages/api/openai.js"
 }

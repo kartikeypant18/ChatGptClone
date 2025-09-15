@@ -12,6 +12,14 @@ export default function Home() {
   const { isSignedIn } = useUser();
 
   useEffect(() => {
+    if (!isSignedIn) {
+      setActiveThreadId(null);
+      localStorage.clear();
+      // Optionally, reset other app state here if needed
+    }
+  }, [isSignedIn]);
+
+  useEffect(() => {
     trackEvent("page.view", { page: "home" });
   }, [trackEvent]);
 
